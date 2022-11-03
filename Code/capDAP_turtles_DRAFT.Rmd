@@ -1,0 +1,85 @@
+---
+title: "RI Wood Turtle Data"
+output: html_notebook
+---
+
+# Introduction
+The goal of this project is to analyze telemetry data collected over to 2022 field season on six wood turtles (3 males and 3 females), to look for patterns and differences between their homeranges and how far away the areas they are occupying are from the stream.
+
+## Getting started
+Activate necessary packages and clear R's brain
+```{r}
+rm(list = ls())
+library(dplyr)
+library(ggplot2)
+library(here)
+library(ggfortify)
+library(adehabitatHR)
+library(sp)
+```
+
+## Pulling in the data
+The telemetry data is the first dataset that needs to be pulled in and checked for errors
+
+```{r}
+turtles <- read.csv(here("Data", "RI_turtle_data.csv"), stringsAsFactors = TRUE)
+```
+
+## Check out the data
+
+```{r}
+str(turtles) #shows the data frame
+```
+
+Check the column names
+
+```{r}
+names(turtles)
+```
+
+"Latitude" and "Longitude" need to be changed into "Y" and "X"
+
+```{r}
+names(turtles) <- c("Date", "Time", "y", "x", "Turtle_ID", "Turtle_sex", "Altitude", "Duration", "Temperature", "Voltage", "DOP", "Satellites", "EST_Time")
+```
+
+Check the levels for the columns Turtle_ID and Turtle_sex. There should be six and two levels respectively.
+
+```{r}
+levels(turtles$Turtle_ID)
+levels(turtles$Turtle_sex)
+```
+
+The Latitudes (y) and Longitudes (x) can be checked for errors by using histograms
+
+First, the latitudes
+
+```{r}
+ggplot(turtles, aes(x = y)) +
+  geom_histogram(bins = 10)
+```
+Looks good! Slight variation is expected and the large number of counts in the center is great as well because these turtles all live along the same river.
+
+Now, the longitudes
+
+```{r}
+ggplot(turtles, aes(x = x)) +
+  geom_histogram(bins = 10)
+```
+Looks great!
+
+## Calculating Homerange
+
+Before we can calculate the home ranges for each turtle, we need to generate subsets that sort the data by each individual.
+
+```{r}
+L1R2_male <- filter(turtles, Turtle_ID == "L1R2")
+L3R1_male <- filter(turtles, Turtle_ID == "L3R1")
+L9R0_male <- filter(turtles, Turtle_ID == "L9R0")
+L1R4_female <- filter(turtles, Turtle_ID == "L1R4")
+L3R3_female <- filter(turtles, Turtle_ID == "L3R3")
+L3R9_female <- filter(turtles, Turtle_ID == "L3R9")
+```
+
+
+
