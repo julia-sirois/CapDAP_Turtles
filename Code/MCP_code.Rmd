@@ -1,0 +1,87 @@
+---
+title: "MCP_code.Rmd"
+author: "Julia Sirois"
+date: "11/15/2022"
+output: html_document
+---
+
+# Introduction
+The goal of this project is to analyze telemetry data collected over the 2022 field season on six wood turtles (3 males and 3 females), to look for patterns and differences between their home ranges. This Markdown file will consist of the code necessary to run two analyses. The first relationship being explored is MCP home range area of males vs the MCP area of females. I hypothesize that male wood turtles will occupy a larger home range than female turtles do, as some literature suggests male woof turtles often have larger home ranges. The second relationship I would like to explore is the difference in size between each turtles MCP area at 75% vs their MCP area at 95%. I am interested in exploring this relationship to see if wood turtles have concentrated home ranges. 
+
+## Getting started
+Activate necessary packages and clear R's brain
+```{r}
+rm(list = ls())
+library(tidyverse)
+library(here)
+library(adehabitatHR) #home range functions
+library(rgdal) #spatial data
+library(ggfortify)
+```
+
+## Pull in the data
+This dataset has been adjusted in ArcGIS so that the coordinate measurements are in UTM (meters) instead of decimal degrees.
+```{r}
+turtles <- read.csv(here("Data", "updated_turtle_locations.csv"))
+```
+
+## Check the data for errors
+```{r}
+str(turtles)
+```
+
+### Check Latitudes and Longitudes 
+Using a histogram to visualize these columns will be sufficient. I expect some variation but nothing too drastic as these turtles all live in the same management area.
+
+```{r}
+ggplot(turtles, aes(x = Latitude)) +
+  geom_histogram(bins = 10)
+ggplot(turtles, aes(x = Longitude)) +
+  geom_histogram(bins = 10)
+```
+Perfect.
+
+Create a subset consisting of the Turtle IDs, Lats and Longs.
+```{r}
+turtles.sp <- turtles[, c("Turtle_ID", "Latitude", "Longitude")] 
+```
+
+R is reading the Lats and Longs as numeric data and needs to be told that those columns represent spacial data.
+```{r}
+library(sp)
+proj4string(turtles.sp)<-CRS("+proj=longlat +datum=WGS84") #sets projection
+```
+
+Now convert the spatial coordninates into UTM so the measurements are in meters and not degrees.
+```{r}
+utm_sp <-spTransform(turtles.sp, CRS("+proj=utm +zone=19 ellps=WGS84")) #reprojects to UTM
+utm_sp
+```
+
+Calculate the MCPs
+```{r}
+turtles_mcp <- mcp(utm_sp, percent = 100)
+turtles_mcp
+```
+There are 6 SpatialPolygons and 6 turtles so everything looks good.
+
+Plot the MCPs
+```{r}
+library(scales) #makes polygons transparent
+plot(utm_sp, col = as.factor(utm_sp@data$Turtle_ID), pch = 16)
+plot(turtles_mcp, col = alpha(1:30, 0.5), add = TRUE)
+```
+
+Calculate the MCP areas
+```{r}
+areas <- mcp.area(utm_sp, percent = seq(50, 100, by = 5))
+```
+```{r}
+areas
+```
+
+Export the areas file as a .csv for analysis
+```{r}
+write.csv(areas, here("Data", "turtle_areas.csv"))
+```
+

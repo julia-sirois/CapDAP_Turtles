@@ -1,0 +1,117 @@
+---
+title: "MCP_area_analysis_DRAFT.Rmd"
+author: "Julia Sirois"
+date: "11/14/2022"
+output: html_document
+---
+
+# Introduction
+This file will work through an analysis of the MCP areas calculated in the MCP_code_DRAFT.Rmd file.
+
+## Getting started
+```{r}
+rm(list = ls())
+library(tidyverse)
+library(adehabitatHR)
+library(here)
+library(tidyr)
+```
+
+## Pull in the data
+```{r}
+MCP_areas <- read.csv(here("Code", "MCP_areas.csv"))
+MCP_areas #look at the data
+```
+The "X" column is for the percentage associated with the MCP area. We can also see that the data is wide so we will want to pivot it to be long. Let's start by pivoting the data naming this column.
+
+```{r}
+MCP_areas_long <- pivot_longer(MCP_areas, cols = L1R2:L9R0, names_to = "Turtle_ID", values_to = "Area") #pivots the data 
+```
+
+Now let's rename the 'X' column
+```{r}
+colnames(MCP_areas_long) <- c("Area_percentage", "Turtle_ID", "Area")
+```
+
+The sex of each turtle is important moving forward. Let's add a column with the appropriate sex for each individual.
+
+```{r}
+Turtle_sex <- data.frame(Turtle_sex = c('male', 'female', 'male', 'female', 'female', 'male')) #creates df with the column I'd like to add
+MCP_areas_new <- cbind(MCP_areas_long, Turtle_sex) #merges the two dataframes
+```
+
+The first relationship I would like to look at are the area ranges for the male turtles vs the female turtles at 95% MCP area. 
+
+The male turtles are L1R2, L3R1 and L9R0
+The female turtles are L1R4, L3R3 and L3R9
+
+Let's separate the areas by the sex of the turtles
+
+```{r}
+male_areas <- filter(MCP_areas_new, Turtle_ID == "L1R2" | Turtle_ID == "L3R1"| Turtle_ID == "L9R0")
+```
+
+Repeat with the female turtles
+
+```{r}
+female_areas <- filter(MCP_areas_new, Turtle_ID == "L1R4" | Turtle_ID == "L3R3"| Turtle_ID == "L3R9")
+```
+
+Lets visualize the data from each subset
+
+```{r}
+ggplot(male_areas, aes(x = Turtle_ID, y = Area)) + geom_boxplot() + theme_bw()
+```
+There is a lot of variation in the areas of each turtle. Let's try this again but with the areas at 95% isolated. 
+
+```{r}
+male_areas_95 <- filter(male_areas, Area_percentage == "95")
+ggplot(male_areas_95, aes(Area)) + geom_histogram(binwidth = 5) + theme_bw()
+summary(male_areas_95)
+```
+
+L3R1's homerange may be an outlier. 
+
+Let's repeat this for the females and see if there are any outliers.
+
+```{r}
+ggplot(female_areas, aes(x = Turtle_ID, y = Area)) + geom_boxplot() + theme_bw()
+```
+There is one point for L1R4 that is way higher than the other individuals. Lets see if it is the 95% range or not.
+
+```{r}
+female_areas_95 <- filter(female_areas, Area_percentage == "95")
+ggplot(female_areas_95, aes(Area)) + geom_histogram(binwidth = 1) + theme_bw()
+summary(female_areas_95)
+```
+
+The potential outlier is not part of the 95% range. 
+
+Filter the data so that the only home range area is 95%
+
+```{r}
+MCP_areas_test <- filter(MCP_areas_new, Area_percentage == 95)
+```
+
+I'd like to compare the home range size of males vs females. Let's use a t-test
+
+```{r}
+glimpse(MCP_areas_test)
+```
+
+Check out the home ranges of each sex using histograms and the facet_wrap() function.
+
+```{r}
+ggplot(MCP_areas_test, aes(x = Area)) +
+  geom_histogram(binwidth = 1) +
+  facet_wrap(~Turtle_sex, ncol = 1) +
+  theme_bw()
+```
+
+Do a t-test
+```{r}
+ttest_MCP <- t.test(Area ~ Turtle_sex, data = MCP_areas_test)
+ttest_MCP
+```
+
+There is no significant difference between the home range sizes of male and female turtles in this sample p = 0.4756
