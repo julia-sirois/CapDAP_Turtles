@@ -49,6 +49,7 @@ turtles.sp <- turtles[, c("Turtle_ID", "Latitude", "Longitude")]
 R is reading the Lats and Longs as numeric data and needs to be told that those columns represent spacial data.
 ```{r}
 library(sp)
+sp::coordinates(turtles.sp)<-turtles.sp[, c("Longitude", "Latitude")]
 proj4string(turtles.sp)<-CRS("+proj=longlat +datum=WGS84") #sets projection
 ```
 
@@ -83,5 +84,13 @@ areas
 Export the areas file as a .csv for analysis
 ```{r}
 write.csv(areas, here("Data", "turtle_areas.csv"))
+```
+
+```{r}
+write.csv(turtles_mcp, here("Data", "turtles_mcp.csv"))
+```
+
+```{r}
+write.csv(utm_sp, here("Data", "utm_sp.csv"))
 ```
 
