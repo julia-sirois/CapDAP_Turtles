@@ -8,7 +8,7 @@ output: html_document
 # Introduction
 The goal of this project is to analyze telemetry data collected over the 2022 field season on six wood turtles (3 males and 3 females), to look for patterns and differences between their home ranges. This Markdown file will consist of the code necessary to run two analyses. The first relationship being explored is MCP home range area of males vs the MCP area of females. I hypothesize that male wood turtles will occupy a larger home range than female turtles do, as some literature suggests male woof turtles often have larger home ranges. The second relationship I would like to explore is the difference in size between each turtles MCP area at 75% vs their MCP area at 95%. I am interested in exploring this relationship to see if wood turtles have concentrated home ranges. 
 
-## Getting started
+## Getting started:
 Activate necessary packages and clear R's brain
 ```{r}
 rm(list = ls())
