@@ -1,0 +1,33 @@
+Wood Turtle CapDAP metadata
+
+Data source: .zip file containing telemetry data from six wood turtles was provided by Scott Buchanan from the RI Department of Environmental Management.
+
+The data for each individual were in separate .csv files and were merged being being pulled into R.
+
+Variables and definitions:
+
+Date - The date the coordinates were logged
+
+Time - The time the coordinates were logged
+
+Latitude - Latitudinal coordinate (decimal degrees)
+
+Longitude - Longitudinal coordinate (decimal degrees)
+
+Turtle_ID - Each turtles unique ID. L#R#. L# corresponds to the marginal scute on the left side of the turtle's carapace that has been marked. R# is the same thing but on the right side of the carapace.
+
+Turtle_sex - the sex of each individual
+
+Altitude - the altitude of the turtle 
+
+Duration - duration of the reading
+
+Temperature - temp (Celsius) at the time of the data log
+
+Voltage - 
+
+DOP - Dilution of precision for telemetry accuracy
+
+Satellites - number of satellites reached during reading
+
+EST_Time - combination of date and time
