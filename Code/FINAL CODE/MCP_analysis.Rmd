@@ -1,0 +1,263 @@
+---
+title: "MCP_analysis.Rmd"
+author: "Julia Sirois"
+date: "11/18/2022"
+output: html_document
+---
+
+# Introduction
+In the file "MCP_code.Rmd", the sequence of code associated with generating MCP's and calculating their areas was written. The Markdown file will work through the analysis of these MCP's under the questions of "Are home ranges larger for the males than the females?" and "Are the home ranges for each indivual consistant or significantly variable?"
+
+## Getting Started:
+Activate the necessary packages
+```{r}
+rm(list = ls())
+library(here)
+library(tidyverse)
+library(ggfortify)
+library(adehabitatHR)
+library(rgdal)
+```
+
+## Pull in the data
+The first dataset we will use is for the male vs female home range analysis
+```{r}
+areas <- read.csv(here("Data", "turtle_areas.csv"))
+areas #examine dataframe
+```
+
+## Clean up the data
+
+The 'X' column is for the percentage associated with the MCP area. We can also see that the data is wide so we will want to pivot it to be long. Let's start by pivoting the data naming this column.
+```{r}
+areas_long <- pivot_longer(areas, cols = L1R2:L9R0, names_to = "Turtle_ID", values_to = "Area") #pivots the data
+areas_long
+```
+
+Now let's rename the 'X' column
+```{r}
+colnames(areas_long) <- c("Area_percentage", "Turtle_ID", "Area")
+```
+
+The sex of each turtle is important moving forward. Let's add a column with the appropriate sex for each individual.
+```{r}
+Turtle_sex <- data.frame(Turtle_sex = c('male', 'female', 'male', 'female', 'female', 'male')) #creates df with the column I'd like to add
+areas_new <- cbind(areas_long, Turtle_sex) #merges the two dataframes
+areas_new
+```
+
+The first relationship I would like to look at are the area ranges for the male turtles vs the female turtles at 95% MCP area. 
+
+The male turtles are L1R2, L3R1 and L9R0
+The female turtles are L1R4, L3R3 and L3R9
+
+Let's separate the areas by the sex of the turtles
+```{r}
+male_areas <- filter(areas_new, Turtle_ID == "L1R2" | Turtle_ID == "L3R1"| Turtle_ID == "L9R0")
+```
+
+Repeat with the female turtles
+
+```{r}
+female_areas <- filter(areas_new, Turtle_ID == "L1R4" | Turtle_ID == "L3R3"| Turtle_ID == "L3R9")
+```
+
+## Analysis
+Visualize the data
+
+males:
+```{r}
+ggplot(male_areas, aes(x = Turtle_ID, y = Area)) + geom_boxplot() + 
+  geom_point() +
+  theme_bw()
+```
+There is a lot of variation between each individual. Let's look at 95% specifically.
+
+```{r}
+male_areas_95 <- filter(male_areas, Area_percentage == "95")
+ggplot(male_areas_95, aes(Area)) + geom_histogram(binwidth = 5) + theme_bw()
+summary(male_areas_95)
+```
+L3R1's homerange may be an outlier. 
+
+Let's repeat this for the females and see if there are any outliers.
+
+females:
+```{r}
+ggplot(female_areas, aes(x = Turtle_ID, y = Area)) + geom_boxplot() + theme_bw()
+```
+There is one point for L1R4 that is way higher than the other individuals. Lets see if it is the 95% range or not.
+```{r}
+female_areas_95 <- filter(female_areas, Area_percentage == "95")
+ggplot(female_areas_95, aes(Area)) + geom_histogram(binwidth = 1) + theme_bw()
+summary(female_areas_95)
+```
+
+The potential outlier is not part of the 95% range. 
+
+Filter the data so that the only home range area is 95%
+
+```{r}
+areas_test <- filter(areas_new, Area_percentage == 95)
+```
+
+I'd like to compare the home range size of males vs females. Let's use a t-test
+
+Check out the home ranges of each sex using histograms and the facet_wrap() function.
+```{r}
+ggplot(areas_test, aes(x = Area)) +
+  geom_histogram(binwidth = 1) +
+  facet_wrap(~Turtle_sex, ncol = 1) #generates two histograms +
+  theme_bw()
+```
+
+Complete a t-test
+```{r}
+ttest_MCP <- t.test(Area ~ Turtle_sex, data = areas_test)
+ttest_MCP
+```
+
+There is no significant difference between the home range sizes of male and female turtles in this sample p = 0.4756
+
+## Question 2: Do individuals have consistent home range sizes or are they greatly variable?
+
+Generate subsets for each individual
+```{r}
+L1R2 <- filter(areas_new, Turtle_ID == 'L1R2')
+L1R4 <- filter(areas_new, Turtle_ID == 'L1R4')
+L3R1 <- filter(areas_new, Turtle_ID == 'L3R1')
+L3R3 <- filter(areas_new, Turtle_ID == 'L3R3')
+L3R9 <- filter(areas_new, Turtle_ID == 'L3R9')
+L9R0 <- filter(areas_new, Turtle_ID == 'L9R0')
+```
+
+## Plot the relationships:
+
+L1R2
+```{r}
+ggplot2::ggplot(L1R2, aes(Area_percentage, Area)) +
+         geom_point() +
+         theme_bw()
+```
+
+L1R4:
+```{r}
+ggplot2::ggplot(L1R4, aes(Area_percentage, Area)) +
+         geom_point() +
+         theme_bw()
+```
+
+L3R1:
+```{r}
+ggplot2::ggplot(L3R1, aes(Area_percentage, Area)) +
+         geom_point() +
+         theme_bw()
+```
+
+L3R3:
+```{r}
+ggplot2::ggplot(L3R3, aes(Area_percentage, Area)) +
+         geom_point() +
+         theme_bw()
+```
+
+L3R9:
+```{r}
+ggplot2::ggplot(L3R9, aes(Area_percentage, Area)) +
+         geom_point() +
+         theme_bw()
+```
+
+L9R0:
+```{r}
+ggplot2::ggplot(L9R0, aes(Area_percentage, Area)) +
+         geom_point() +
+         theme_bw()
+```
+
+Set up a linear model
+```{r}
+L1R2_lm <- lm(Area ~ Area_percentage, data = L1R2)
+L1R4_lm <- lm(Area ~ Area_percentage, data = L1R4)
+L3R1_lm <- lm(Area ~ Area_percentage, data = L3R1)
+L3R3_lm <- lm(Area ~ Area_percentage, data = L3R3)
+L3R9_lm <- lm(Area ~ Area_percentage, data = L3R9)
+L9R0_lm <- lm(Area ~ Area_percentage, data = L9R0)
+``` 
+
+Check the assumptions
+```{r}
+autoplot(L1R2_lm, smooth.colour = NA)
+autoplot(L1R4_lm, smooth.colour = NA)
+autoplot(L3R1_lm, smooth.colour = NA)
+autoplot(L3R3_lm, smooth.colour = NA)
+autoplot(L3R9_lm, smooth.colour = NA)
+autoplot(L9R0_lm, smooth.colour = NA)
+```
+
+Interpret
+
+L1R2:
+```{r}
+anova(L1R2_lm)
+```
+
+L1R4:
+```{r}
+anova(L1R4_lm)
+```
+
+L3R1:
+```{r}
+anova(L3R1_lm)
+```
+
+L3R3:
+```{r}
+anova(L3R3_lm)
+```
+
+L3R9:
+```{r}
+anova(L3R9_lm)
+```
+
+L9R0:
+```{r}
+anova(L9R0_lm)
+```
+
+Summary tables:
+
+L1R2
+```{r}
+summary(L1R2_lm)
+```
+
+L1R4
+```{r}
+summary(L1R4_lm)
+```
+
+L3R1
+```{r}
+summary(L3R1_lm)
+```
+
+L3R3
+```{r}
+summary(L3R3_lm)
+```
+
+L3R9
+```{r}
+summary(L3R9_lm)
+```
+
+L9R0
+```{r}
+summary(L9R0_lm)
+```
+
+Results:
+All individuals hava a homerange with a significant amount of variability (p = 0.00)

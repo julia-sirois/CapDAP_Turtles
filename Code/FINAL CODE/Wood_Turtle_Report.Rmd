@@ -1,0 +1,329 @@
+---
+title: "Wood_Turtle_Report.Rmd"
+author: "Julia Sirois"
+date: "11/19/2022"
+output: html_document
+---
+
+# Introduction
+The goal of this project is to analyze telemetry data collected over the 2022 field season on six wood turtles (3 males and 3 females) in order to look for patterns and differences between their home ranges. There are three relationships I am curious to explore. The first relationship being explored is MCP home range area of males vs the MCP area of females. I hypothesize that male wood turtles will occupy a larger home range than female turtles do. The second relationship I am going to look at is the whether the home range of each individual is concentrated in a certain area or if there is a lot of variability in the home ranges. The third relationship I am looking at is the difference between how far away from the stream male turtles occupy compared to how far away female turtles occupy. I believe that female turtles will occupy areas further away from the stream than male turtles.
+In the book Biology and Conservation of the Wood Turtle, Chapter 6: Spatial Ecology and Seasonal Behavior discusses previous examinations of home ranges with the results finding that male wood turtles had larger home ranges but whether it was significant varied between studies. This chapter also mentions that male wood turtles spend more time in streams than female turtles do during the active season and females generally move greater distances from the stream than males do. 
+
+## Getting Started
+```{r}
+rm(list = ls())
+library(tidyverse)
+library(ggfortify)
+library(here)
+library(rgdal)
+library(adehabitatHR)
+```
+
+## Analyses
+
+## Pull in data
+```{r}
+turtles <- read.csv(here("Data", "updated_turtle_locations.csv"))
+```
+
+
+### Question 1 Are the home ranges of male wood turtles larger than the home ranges of female wood turtles?
+
+
+Create a subset consisting of the Turtle IDs, Lats and Longs.
+```{r}
+turtles.sp <- turtles[, c("Turtle_ID", "Latitude", "Longitude")] 
+```
+
+R is reading the Lats and Longs as numeric data and needs to be told that those columns represent spacial data.
+```{r}
+library(sp)
+sp::coordinates(turtles.sp)<-turtles.sp[, c("Longitude", "Latitude")]
+proj4string(turtles.sp)<-CRS("+proj=longlat +datum=WGS84") #sets projection
+```
+
+Now convert the spatial coordinates into UTM so the measurements are in meters and not degrees.
+```{r}
+utm_sp <-spTransform(turtles.sp, CRS("+proj=utm +zone=19 ellps=WGS84")) #reprojects to UTM
+utm_sp
+```
+```{r}
+turtles_mcp <- mcp(utm_sp, percent = 100)
+turtles_mcp 
+```
+*There should be 6 spatial polygons.. not sure what is wrong*
+
+Plot the MCPs
+```{r}
+library(scales) #makes polygons transparent
+plot(utm_sp, col = as.factor(utm_sp@data$Turtle_ID), pch = 16)
+plot(turtles_mcp, col = alpha(1:30, 0.5), add = TRUE)
+```
+Calculate the MCP areas
+```{r}
+areas <- mcp.area(utm_sp, percent = seq(50, 100, by = 5))
+```
+
+## Statistical Analysis Preparation
+
+```{r}
+areas_long <- pivot_longer(areas, cols = L1R2:L9R0, names_to = "Turtle_ID", values_to = "Area") #pivots the data
+areas_long
+```
+
+Now let's rename the 'X' column
+```{r}
+colnames(areas_long) <- c("Area_percentage", "Turtle_ID", "Area")
+```
+
+The sex of each turtle is important moving forward. Let's add a column with the appropriate sex for each individual.
+```{r}
+Turtle_sex <- data.frame(Turtle_sex = c('male', 'female', 'male', 'female', 'female', 'male')) #creates df with the column I'd like to add
+areas_new <- cbind(areas_long, Turtle_sex) #merges the two dataframes
+areas_new
+```
+
+The male turtles are L1R2, L3R1 and L9R0
+The female turtles are L1R4, L3R3 and L3R9
+
+Let's separate the areas by the sex of the turtles
+```{r}
+male_areas <- filter(areas_new, Turtle_ID == "L1R2" | Turtle_ID == "L3R1"| Turtle_ID == "L9R0")
+```
+
+Repeat with the female turtles
+
+```{r}
+female_areas <- filter(areas_new, Turtle_ID == "L1R4" | Turtle_ID == "L3R3"| Turtle_ID == "L3R9")
+```
+
+## Analysis
+Visualize the data
+
+```{r}
+male_areas_95 <- filter(male_areas, Area_percentage == "95")
+ggplot(male_areas_95, aes(Area)) + geom_histogram(binwidth = 5) + theme_bw()
+summary(male_areas_95)
+```
+
+```{r}
+female_areas_95 <- filter(female_areas, Area_percentage == "95")
+ggplot(female_areas_95, aes(Area)) + geom_histogram(binwidth = 1) + theme_bw()
+summary(female_areas_95)
+```
+
+Filter the data so that the only home range area is 95%
+
+```{r}
+areas_test <- filter(areas_new, Area_percentage == 95)
+```
+
+I'd like to compare the home range size of males vs females. Let's use a t-test
+
+Check out the home ranges of each sex using histograms and the facet_wrap() function.
+```{r}
+ggplot(areas_test, aes(x = Area)) +
+  geom_histogram(binwidth = 1) +
+  facet_wrap(~Turtle_sex, ncol = 1) #generates two histograms +
+  theme_bw()
+```
+
+Complete a t-test
+```{r}
+ttest_MCP <- t.test(Area ~ Turtle_sex, data = areas_test)
+ttest_MCP
+```
+
+## Results
+There is no significant difference between the home range sizes of male and female turtles in this sample p = 0.4756
+
+### Question 2 Do individuals have consistent home range sizes or are they greatly variable?
+
+Generate subsets for each individual
+```{r}
+L1R2 <- filter(areas_new, Turtle_ID == 'L1R2')
+L1R4 <- filter(areas_new, Turtle_ID == 'L1R4')
+L3R1 <- filter(areas_new, Turtle_ID == 'L3R1')
+L3R3 <- filter(areas_new, Turtle_ID == 'L3R3')
+L3R9 <- filter(areas_new, Turtle_ID == 'L3R9')
+L9R0 <- filter(areas_new, Turtle_ID == 'L9R0')
+```
+
+## Plot the relationships
+L1R2:
+```{r}
+ggplot2::ggplot(L1R2, aes(Area_percentage, Area)) +
+         geom_point() +
+         theme_bw()
+```
+
+L1R4:
+```{r}
+ggplot2::ggplot(L1R4, aes(Area_percentage, Area)) +
+         geom_point() +
+         theme_bw()
+```
+
+L3R1:
+```{r}
+ggplot2::ggplot(L3R1, aes(Area_percentage, Area)) +
+         geom_point() +
+         theme_bw()
+```
+
+L3R3:
+```{r}
+ggplot2::ggplot(L3R3, aes(Area_percentage, Area)) +
+         geom_point() +
+         theme_bw()
+```
+
+L3R9:
+```{r}
+ggplot2::ggplot(L3R9, aes(Area_percentage, Area)) +
+         geom_point() +
+         theme_bw()
+```
+
+L9R0:
+```{r}
+ggplot2::ggplot(L9R0, aes(Area_percentage, Area)) +
+         geom_point() +
+         theme_bw()
+```
+
+Set up a linear model
+```{r}
+L1R2_lm <- lm(Area ~ Area_percentage, data = L1R2)
+L1R4_lm <- lm(Area ~ Area_percentage, data = L1R4)
+L3R1_lm <- lm(Area ~ Area_percentage, data = L3R1)
+L3R3_lm <- lm(Area ~ Area_percentage, data = L3R3)
+L3R9_lm <- lm(Area ~ Area_percentage, data = L3R9)
+L9R0_lm <- lm(Area ~ Area_percentage, data = L9R0)
+``` 
+
+Check the assumptions
+```{r}
+autoplot(L1R2_lm, smooth.colour = NA)
+autoplot(L1R4_lm, smooth.colour = NA)
+autoplot(L3R1_lm, smooth.colour = NA)
+autoplot(L3R3_lm, smooth.colour = NA)
+autoplot(L3R9_lm, smooth.colour = NA)
+autoplot(L9R0_lm, smooth.colour = NA)
+```
+
+Interpret
+
+L1R2:
+```{r}
+anova(L1R2_lm)
+```
+
+L1R4:
+```{r}
+anova(L1R4_lm)
+```
+
+L3R1:
+```{r}
+anova(L3R1_lm)
+```
+
+L3R3:
+```{r}
+anova(L3R3_lm)
+```
+
+L3R9:
+```{r}
+anova(L3R9_lm)
+```
+
+L9R0:
+```{r}
+anova(L9R0_lm)
+```
+
+Summary tables:
+
+L1R2
+```{r}
+summary(L1R2_lm)
+```
+
+L1R4
+```{r}
+summary(L1R4_lm)
+```
+
+L3R1
+```{r}
+summary(L3R1_lm)
+```
+
+L3R3
+```{r}
+summary(L3R3_lm)
+```
+
+L3R9
+```{r}
+summary(L3R9_lm)
+```
+
+L9R0
+```{r}
+summary(L9R0_lm)
+```
+
+Results:
+All individuals hava a homerange with a significant amount of variability (p = 0.00)
+
+### Question 3 Do female wood turtles occupy areas further from the stream than males do?
+
+Check column names
+```{r}
+names(turtles)
+```
+
+Create subset
+```{r}
+df <- dplyr::select(turtles, Turtle_sex, NEAR_DIST)
+```
+
+
+Plot the relationship
+```{r}
+ggplot(df, aes(NEAR_DIST))+
+  geom_histogram() +
+  facet_wrap(~Turtle_sex, ncol = 1) +
+  theme_bw()
+```
+
+Summarise the data
+```{r}
+turtlemeans <- summarise(
+  group_by(df, Turtle_sex),
+  meanNearDist = mean(NEAR_DIST))
+```
+
+Run ttest
+```{r}
+turtle_ttest <- t.test(NEAR_DIST ~ Turtle_sex, data = df)
+turtle_ttest
+```
+There is a significant difference between the distance from the stream occupied by males vs females (n=6)(p=0.00)
+
+## Biological Summary 
+
+I found that there was not a significant difference between the male and female wood turtles in this sample (n=6)(p=0.4756). This was different than my original hypothesis and therefore, I cannot reject the null hypothesis.
+
+There was a significant difference in home range point variability for all individuals (n=6)(p=0.00). 
+
+Finally, there was a significant difference between the distance from the stream occupied by female turtles (mean = 138m) than male turtles (mean = 63m)(p=0.00). I can reject the null hypothesis.
+
+## Challenges
+
+I needed to learn how to manipulate numeric values into usable coordinates for spatial data analyses. One challenge in this was learning how to project coordinates into UTM so that instead of having decimal degrees, I would be working with meters. This was important for calculating the areas of the MCPs and the distance the turtles were from the stream. 
+I think moving forward I would find a better test and angle to look at the home range variability question. I also need to troubleshoot and figure out why my code stopped providing 6 spatial polygons for the mcp (and therefore affected the rest of my code). 
+Learning about spatial data analysis has been a lot of fun because I am able to contrast the process with my GIS class and I am excited to implement these skills moving forwards in my studies and my career.

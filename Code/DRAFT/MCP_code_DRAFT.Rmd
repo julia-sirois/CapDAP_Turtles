@@ -4,7 +4,7 @@ output: html_notebook
 ---
 
 # Introduction
-The goal of this project is to analyze telemetry data collected over to 2022 field season on six wood turtles (3 males and 3 females), to look for patterns and differences between their homeranges and how far away the areas they are occupying are from the stream.
+The goal of this project is to analyze telemetry data collected over to 2022 field season on six wood turtles (3 males and 3 females), to look for patterns and differences between their home ranges and how far away the areas they are occupying are from the stream.
 
 ## Getting started
 Activate necessary packages and clear R's brain
@@ -17,6 +17,13 @@ library(ggfortify)
 library(adehabitatHR)
 library(sp)
 ```
+
+## Pull in the UTM turtle data
+
+```{r}
+UTM_turtles <- read.csv(here("Data", "updated_turtle_locations.csv"))
+```
+
 
 ## Pulling in the data
 The telemetry data is the first dataset that needs to be pulled in and checked for errors
@@ -99,6 +106,8 @@ Plot the results
 ```{r}
 plot(L1R2_clu)
 ```
+
+
 Now put together the MCP for L1R2
 
 ```{r}
@@ -268,15 +277,20 @@ L9R0_area
 
 Merge areas into one dataset
 
-What are the units of area? It is important to know.
-
 ```{r}
 areas <- cbind(L1R2_area, L1R4_area, L3R1_area, L3R3_area, L3R9_area, L9R0_area)
 colnames(areas) <- c("L1R2", "L1R4", "L3R1", "L3R3", "L3R9", "L9R0") 
 areas
 ```
-Ok! This is great - you've got different percent MCP home range areas for all 6 turtles in a data frame. You could pivot longer if you wanted to compare mean 95% male vs. female home ranges, for example. What kind of statistical test would that be?
 
-I'm really impressed at how you moved through all this data and figured out how to spatilaize it. I'm not sure where we are with regard to looking at mean distance to river, or comparing mean dist to river b/w males and females.  What are the statistical tests you'd like to run here?
+Pivot the data to be long
+```{r}
+library(tidyr) #activates package
+areas_long <- pivot_longer(areas, cols = L1R2:L9R0, names_to = "Turtle_ID", values_to = "MCP_area")
+```
 
+Export draft as a .csv
+```{r}
+write.csv(areas, "C:\\jesiro19\\Home\\Biostats\\CapDAP_turtles\\Code\\MCP_areas.csv", row.names = TRUE)
+```
 

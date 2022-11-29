@@ -1,0 +1,57 @@
+---
+title: "Distance_to_stream.Rmd"
+author: "Julia Sirois"
+date: "11/19/2022"
+output: html_document
+---
+
+# Introduction
+This .Rmd will work through code to compare the relationship between the distance to the Wood River and Flat River being occupied by males vs females. The distances used in this dataset were calculated using ArcGIS Pro
+
+## Getting Started
+```{r}
+rm(list = ls())
+library(here)
+library(tidyverse)
+library(ggfortify)
+```
+
+## Pulling in data
+```{r}
+turtles <- read.csv(here("Data", "updated_turtle_locations.csv"))
+```
+
+Create subsets for each sex in order to explore the data
+
+Check column names
+```{r}
+names(turtles)
+```
+
+Create subset
+```{r}
+df <- dplyr::select(turtles, Turtle_sex, NEAR_DIST)
+```
+
+
+Plot the relationship
+```{r}
+ggplot(df, aes(NEAR_DIST))+
+  geom_histogram() +
+  facet_wrap(~Turtle_sex, ncol = 1) +
+  theme_bw()
+```
+
+Summarise the data
+```{r}
+turtlemeans <- summarise(
+  group_by(df, Turtle_sex),
+  meanNearDist = mean(NEAR_DIST))
+```
+
+Run ttest
+```{r}
+turtle_ttest <- t.test(NEAR_DIST ~ Turtle_sex, data = df)
+turtle_ttest
+```
+There is a significant difference between the distance from the stream occupied by males vs females (n=6)(p=0.00)
