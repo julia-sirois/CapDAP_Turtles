@@ -22,6 +22,9 @@ library(tidyr)
 MCP_areas <- read.csv(here("Code", "MCP_areas.csv"))
 MCP_areas #look at the data
 ```
+Because you didn't use `here()` when you wrote the csv, the path is breaking. I pulled the data in manually to make sure I can work through your file, but you should fix.
+
+
 The "X" column is for the percentage associated with the MCP area. We can also see that the data is wide so we will want to pivot it to be long. Let's start by pivoting the data naming this column.
 
 ```{r}
@@ -32,6 +35,7 @@ Now let's rename the 'X' column
 ```{r}
 colnames(MCP_areas_long) <- c("Area_percentage", "Turtle_ID", "Area")
 ```
+Do you know what the units are for area?
 
 The sex of each turtle is important moving forward. Let's add a column with the appropriate sex for each individual.
 
@@ -72,11 +76,16 @@ summary(male_areas_95)
 
 L3R1's homerange may be an outlier. 
 
+Probabaly not - this is easily individual variation given the small sample size.
+
 Let's repeat this for the females and see if there are any outliers.
 
 ```{r}
 ggplot(female_areas, aes(x = Turtle_ID, y = Area)) + geom_boxplot() + theme_bw()
 ```
+Do these boxplots (for the males, as well), include all of the different home range sizes (75, 85, 95, etc)? If so, it does not make sense to plot them together like this, because they are totally dependent on one another. You need to pick a home range size (e.g. 95%) and compare it across animals, but comparing e.g. 75 to 95% doesn't make sense.
+
+
 There is one point for L1R4 that is way higher than the other individuals. Lets see if it is the 95% range or not.
 
 ```{r}
@@ -92,6 +101,7 @@ Filter the data so that the only home range area is 95%
 ```{r}
 MCP_areas_test <- filter(MCP_areas_new, Area_percentage == 95)
 ```
+Good
 
 I'd like to compare the home range size of males vs females. Let's use a t-test
 
@@ -115,3 +125,7 @@ ttest_MCP
 ```
 
 There is no significant difference between the home range sizes of male and female turtles in this sample p = 0.4756
+
+Good. Well done.
+
+Where are we at with distance from stream?

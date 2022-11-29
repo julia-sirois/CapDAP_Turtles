@@ -41,6 +41,8 @@ ggplot(df, aes(NEAR_DIST))+
   facet_wrap(~Turtle_sex, ncol = 1) +
   theme_bw()
 ```
+When you look at this, would you guess there is a difference? What would you guess the means to be for each sex?
+
 
 Summarise the data
 ```{r}
@@ -48,6 +50,7 @@ turtlemeans <- summarise(
   group_by(df, Turtle_sex),
   meanNearDist = mean(NEAR_DIST))
 ```
+You might want to add sd to that summary
 
 Run ttest
 ```{r}
@@ -55,3 +58,5 @@ turtle_ttest <- t.test(NEAR_DIST ~ Turtle_sex, data = df)
 turtle_ttest
 ```
 There is a significant difference between the distance from the stream occupied by males vs females (n=6)(p=0.00)
+
+Good. So now you need a "publication quality" plot that highlights the statistical difference for the reader. What might that look like?
