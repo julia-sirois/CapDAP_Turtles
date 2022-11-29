@@ -268,9 +268,15 @@ L9R0_area
 
 Merge areas into one dataset
 
+What are the units of area? It is important to know.
+
 ```{r}
 areas <- cbind(L1R2_area, L1R4_area, L3R1_area, L3R3_area, L3R9_area, L9R0_area)
 colnames(areas) <- c("L1R2", "L1R4", "L3R1", "L3R3", "L3R9", "L9R0") 
 areas
 ```
+Ok! This is great - you've got different percent MCP home range areas for all 6 turtles in a data frame. You could pivot longer if you wanted to compare mean 95% male vs. female home ranges, for example. What kind of statistical test would that be?
+
+I'm really impressed at how you moved through all this data and figured out how to spatilaize it. I'm not sure where we are with regard to looking at mean distance to river, or comparing mean dist to river b/w males and females.  What are the statistical tests you'd like to run here?
+
 

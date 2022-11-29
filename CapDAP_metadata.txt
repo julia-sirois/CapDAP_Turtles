@@ -2,7 +2,7 @@ Wood Turtle CapDAP metadata
 
 Data source: .zip file containing telemetry data from six wood turtles was provided by Scott Buchanan from the RI Department of Environmental Management.
 
-The data for each individual were in separate .csv files and were merged being being pulled into R.
+The data for each individual were in separate .csv files and were merged before being pulled into R.
 
 Variables and definitions:
 
@@ -14,7 +14,7 @@ Latitude - Latitudinal coordinate (decimal degrees)
 
 Longitude - Longitudinal coordinate (decimal degrees)
 
-Turtle_ID - Each turtles unique ID. L#R#. L# corresponds to the marginal scute on the left side of the turtle's carapace that has been marked. R# is the same thing but on the right side of the carapace.
+Turtle_ID - Each turtle's unique ID. L#R#. L# corresponds to the marginal scute on the left side of the turtle's carapace that has been marked. R# is the same thing but on the right side of the carapace.
 
 Turtle_sex - the sex of each individual
 
