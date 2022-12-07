@@ -72,10 +72,11 @@ turtles_mcp
 Ok - I wonder if there is a package conflict? One thing you could do is just refer to getting the mcps from your other code (reference the other file and write them from that file) and then just import them here, already "cooked".
 
 Plot the MCPs
-```{r}
+```{r, fig.cap='Figure 1. A delightful dog named Gus'}
 plot(utm_sp, col = as.factor(utm_sp@data$Turtle_ID), pch = 16)
 plot(turtles_mcp, col = alpha(1:30, 0.5), add = TRUE)
 ```
+
 It will be cool to add a figure legend to this telling us what we're looking at.
 
 Calculate the MCP areas

@@ -1,0 +1,204 @@
+---
+title: "Analyzing Telemetry Data"
+author: "Julia Sirois"
+date: "12/1/2022"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include= FALSE}
+knitr::opts_chunk$set(warning = FALSE)
+rm(list = ls())
+library(tidyverse)
+library(ggfortify)
+library(here)
+library(rgdal)
+library(adehabitatHR)
+```
+
+
+# Introduction: 
+
+This dataset was collected by the RI DEM during the 2022 active season for Wood turtles.
+
+```{r img-knitr, echo=FALSE, fig.align='center', out.width='40%', fig.cap='Figure 1. L9R0'}
+knitr::include_graphics(here("Images", "tyson.jpg"))
+```
+
+The Wood turtle (*Glyptemys insculpta*) is a Species of Greatest Conservation Need in all 17 states that they naturally occur in. Due to their coloration and personality, this species is often targeted by poachers and sold into the pet trade. 
+
+The RI DEM has a population of 13 individuals that have radio transmitters on them. There is also a small GPS that pings the turtles location multiple times during the day. These GPS devices are collected by the researchers in order to upload all turtle relocations into their datasets. 
+
+During the active season male turtles tend to occupy greater portions of the stream and overall larger home ranges, while female turtles tend to occupy smaller home ranges and areas that are further from the stream (Jones and Willey 2021). This is potentially due to the availability of nesting areas being greater distances from their home stream.  
+
+New packages being used:
+adehabitatHR (implements home range estimators) and sp (implements classes and methods for spatial data)
+
+## Data Exploration
+```{r, include= FALSE}
+turtles <- read.csv(here("Data", "updated_turtle_locations.csv"))
+```
+
+### Question 1: Are the home ranges of male wood turtles larger than those of female wood turtles?
+
+Hypothesis - The home range of male wood turtles is significantly greater than the home range of female wood turtles.
+
+First, create a subset with the columns of interest
+```{r}
+turtles.sp <- turtles [c("Turtle_ID", "Latitude", "Longitude")] 
+```
+
+R is reading the Lats and Longs as numeric data and needs to be told that those columns represent spacial data.
+```{r}
+library(sp)
+coordinates(turtles.sp)<- c("Longitude", "Latitude")
+proj4string(turtles.sp)<-CRS("+proj=longlat +datum=WGS84") #sets projection
+```
+
+I converted the spatial coordinates into UTM so the measurements are in meters and not degrees. I did this by using **spTransform()** and **CRS()** to reproject the `turtles.sp` subset 
+```{r, include = FALSE}
+utm_sp <-spTransform(turtles.sp, CRS("+proj=utm +zone=19 ellps=WGS84")) #reprojects to UTM
+utm_sp
+```
+
+
+Create the MCPs
+```{r, message = FALSE}
+turtles_mcp <- mcp(utm_sp, percent = 100)
+turtles_mcp 
+```
+
+Plot the MCPs
+```{r, fig.cap = "Figure 2: MCP Polygons at 100% area"}
+plot(utm_sp, col = as.factor(utm_sp@data$Turtle_ID), pch = 16)
+plot(turtles_mcp, col = alpha(1:30, 0.5), add = TRUE)
+```
+
+Calculate the MCP areas
+```{r, fig.cap= "Figure 3: Home range size and level for each individual"}
+areas <- mcp.area(utm_sp, percent = seq(50, 100, by = 5))
+areas
+```
+
+## Statistical Analysis Preparation 
+I exported the `areas` subset as a .csv so that the area percentages would be included in the subset. I then imported the .csv and named the new upload `turtle_areas`. 
+```{r, include = FALSE}
+write.csv(areas, here("Data", "turtle_areas.csv")) #export as .csv so that the area percentage column becomes integrated into the dataset
+```
+
+
+```{r, include = FALSE}
+turtle_areas <- read.csv(here("Data", "turtle_areas.csv"))
+```
+
+Data analysis preparation steps:
+1. The data set needed to be pivoted `pivot_longer()`
+2. The column 'X' needed to be renamed `colnames() <- c()`
+3. A column with the sex of each turtle was added `data.frame()` and `cbind()`
+
+```{r, include=FALSE}
+areas_long <- pivot_longer(turtle_areas, cols = L1R2:L9R0, names_to = "Turtle_ID", values_to = "Area") #pivots the data
+```
+
+ 
+```{r, include=FALSE}
+colnames(areas_long) <- c("Area_percentage", "Turtle_ID", "Area")
+```
+
+
+```{r, include=FALSE}
+Turtle_sex <- data.frame(Turtle_sex = c('male', 'female', 'male', 'female', 'female', 'male')) #creates df with the column I'd like to add
+areas_new <- cbind(areas_long, Turtle_sex) #merges the two data frames
+```
+
+The male turtles are L1R2, L3R1 and L9R0
+The female turtles are L1R4, L3R3 and L3R9
+
+Let's separate the areas by the sex of the turtles
+```{r}
+male_areas <- filter(areas_new, Turtle_ID == "L1R2" | Turtle_ID == "L3R1"| Turtle_ID == "L9R0")
+```
+
+Repeat with the female turtles
+
+```{r}
+female_areas <- filter(areas_new, Turtle_ID == "L1R4" | Turtle_ID == "L3R3"| Turtle_ID == "L3R9")
+```
+
+
+## Analysis
+
+I wanted to run my analysis using the 95% areas for each sex
+```{r}
+areas_test <- filter(areas_new, Area_percentage == 95)
+```
+
+### Visualize the data
+
+```{r, fig.cap= "Figure 4: Boxplot of 95% area by turtle sex"}
+ggplot(areas_test, aes(x = Area)) +
+  geom_boxplot() +
+  facet_wrap(~Turtle_sex, ncol = 1) #generates two histograms
+```
+
+Complete a t-test
+```{r}
+ttest_MCP <- t.test(Area ~ Turtle_sex, data = areas_test)
+ttest_MCP
+```
+## Results
+There was not a significant difference between the home ranges of this sample based on their sex (p= 0.4828). This could be the result of having such a small sample size.
+The mean home range size for the females was 8.65 sq meters and the mean home range size for the males was 18.83 sq meters.
+
+
+### Question 2: Do female wood turtles occupy areas further from the stream than male wood turtles?
+Hypothesis: Female wood turtles occupy areas further from their home stream than male wood turtles do.
+
+For this question I needed to compute the distance from each GPS point to the nearest river. In order to do this a shapefile containing the rivers in the management area and the turtle data were uploaded into ArcGIS Pro. I then used a tool to specify that I wanted the shortest distance between each point and the river and a column with the distances was added to the data. 
+
+```{r, echo=FALSE, fig.align='center', out.width='40%', fig.cap='Map of GPS relocations and Rivers'}
+knitr::include_graphics(here("Images", "WoodTurtle_Visual2.jpg"))
+
+```
+
+Create subset with **Turtle_sex** and **NEAR_DIST**
+```{r}
+df <- dplyr::select(turtles, Turtle_sex, NEAR_DIST)
+```
+
+```{r}
+ggplot(df, aes(NEAR_DIST))+
+  geom_histogram() +
+  facet_wrap(~Turtle_sex, ncol = 1) +
+  xlab("Distance to Stream (meters)")+
+  theme_bw()
+```
+
+Summarize the data
+```{r}
+turtlemeans <- summarise(
+  group_by(df, Turtle_sex),
+  meanNearDist = mean(NEAR_DIST))
+```
+
+Run t-test
+```{r}
+turtle_ttest <- t.test(NEAR_DIST ~ Turtle_sex, data = df)
+turtle_ttest
+```
+There is a significant difference between the distance from the stream occupied by males vs females (n=6)(p=0.00)
+
+## Biological Summary
+
+The home range areas of male turtles were not significantly larger than their female counterparts contrary to my hypothesis (p=4828). 
+
+The female wood turtles occupied areas that were significantly further from the stream than male wood turtles, supporting my hypothesis (p-value < 2.2e-16). 
+
+
+## Take aways
+
+Working with spatial data was difficult and tidious.
+Having a small sample size could have influenced the outcome of my statistical tests.
+It was a lot of fun learning how to play with new packages.
+Turtles are neat.

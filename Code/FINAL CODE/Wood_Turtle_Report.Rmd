@@ -2,12 +2,29 @@
 title: "Wood_Turtle_Report.Rmd"
 author: "Julia Sirois"
 date: "11/19/2022"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 # Introduction
-The goal of this project is to analyze telemetry data collected over the 2022 field season on six wood turtles (3 males and 3 females) in order to look for patterns and differences between their home ranges. There are three relationships I am curious to explore. The first relationship being explored is MCP home range area of males vs the MCP area of females. I hypothesize that male wood turtles will occupy a larger home range than female turtles do. The second relationship I am going to look at is the whether the home range of each individual is concentrated in a certain area or if there is a lot of variability in the home ranges. The third relationship I am looking at is the difference between how far away from the stream male turtles occupy compared to how far away female turtles occupy. I believe that female turtles will occupy areas further away from the stream than male turtles.
+The goal of this project is to analyze telemetry data collected over the 2022 field season on six wood turtles (3 males and 3 females) in order to look for patterns and differences between their home ranges. There are three relationships I am curious to explore. The first relationship being explored is MCP home range area of males vs the MCP area of females. I hypothesize that male wood turtles will occupy a larger home range than female turtles do. 
+
+Why? What is different about their biology that might explain why males use more space?
+
+
+The second relationship I am going to look at is the whether the home range of each individual is concentrated in a certain area or if there is a lot of variability in the home ranges. 
+
+I'm not sure I understand this one. Is this the clusthr? If so, how do you quantify it? 
+
+
+The third relationship I am looking at is the difference between how far away from the stream male turtles occupy compared to how far away female turtles occupy. I believe that female turtles will occupy areas further away from the stream than male turtles.
+
+Why should females be further from the stream than males? Does time of year matter?
+
 In the book Biology and Conservation of the Wood Turtle, Chapter 6: Spatial Ecology and Seasonal Behavior discusses previous examinations of home ranges with the results finding that male wood turtles had larger home ranges but whether it was significant varied between studies. This chapter also mentions that male wood turtles spend more time in streams than female turtles do during the active season and females generally move greater distances from the stream than males do. 
+
+Good, but maybe intergrate these findings right into your hyptotheses. Also, we need a formal citation of the book (maybe at the end of the document.)
 
 ## Getting Started
 ```{r}
@@ -52,6 +69,7 @@ turtles_mcp <- mcp(utm_sp, percent = 100)
 turtles_mcp 
 ```
 *There should be 6 spatial polygons.. not sure what is wrong*
+Ok - I wonder if there is a package conflict? One thing you could do is just refer to getting the mcps from your other code (reference the other file and write them from that file) and then just import them here, already "cooked".
 
 Plot the MCPs
 ```{r}
@@ -59,10 +77,13 @@ library(scales) #makes polygons transparent
 plot(utm_sp, col = as.factor(utm_sp@data$Turtle_ID), pch = 16)
 plot(turtles_mcp, col = alpha(1:30, 0.5), add = TRUE)
 ```
+It will be cool to add a figure legend to this telling us what we're looking at.
+
 Calculate the MCP areas
 ```{r}
 areas <- mcp.area(utm_sp, percent = seq(50, 100, by = 5))
 ```
+This looks like it also just gave areas for one turtle?
 
 ## Statistical Analysis Preparation
 
@@ -202,6 +223,8 @@ L3R9_lm <- lm(Area ~ Area_percentage, data = L3R9)
 L9R0_lm <- lm(Area ~ Area_percentage, data = L9R0)
 ``` 
 
+I'm not sure I get what this is testing. Area is the home range area , right?  Are you trying to see how much different the 50% home range is to the 75% for example? If so, it might make sense to determine the difference in areas with each step and then compare the mean differences, rather than the areas themselves. Let's talk about this. Have you seen an example of this sort of analysis someplace?
+
 Check the assumptions
 ```{r}
 autoplot(L1R2_lm, smooth.colour = NA)
@@ -316,14 +339,24 @@ There is a significant difference between the distance from the stream occupied 
 
 ## Biological Summary 
 
-I found that there was not a significant difference between the male and female wood turtles in this sample (n=6)(p=0.4756). This was different than my original hypothesis and therefore, I cannot reject the null hypothesis.
+I found that there was not a significant difference between WHAT - between WHAT measure compared between males and females? 
+the male and female wood turtles in this sample (n=6)(p=0.4756). This was different than my original hypothesis and therefore, I cannot reject the null hypothesis.
 
-There was a significant difference in home range point variability for all individuals (n=6)(p=0.00). 
+There was a significant difference in home range point variability for all individuals (n=6)(p=0.00). Instead of saying "there was a significant difference" which tells me some information, what about "Males had significantly larger home ranges than females" which tells me more.
 
 Finally, there was a significant difference between the distance from the stream occupied by female turtles (mean = 138m) than male turtles (mean = 63m)(p=0.00). I can reject the null hypothesis.
+Again, tell me the difference. Males were found signfiicantly closer to streams than females...
+
 
 ## Challenges
 
 I needed to learn how to manipulate numeric values into usable coordinates for spatial data analyses. One challenge in this was learning how to project coordinates into UTM so that instead of having decimal degrees, I would be working with meters. This was important for calculating the areas of the MCPs and the distance the turtles were from the stream. 
+
 I think moving forward I would find a better test and angle to look at the home range variability question. I also need to troubleshoot and figure out why my code stopped providing 6 spatial polygons for the mcp (and therefore affected the rest of my code). 
+
+Ideally we'll fix this before the final version.
+
+
 Learning about spatial data analysis has been a lot of fun because I am able to contrast the process with my GIS class and I am excited to implement these skills moving forwards in my studies and my career.
+
+this has been a great project!

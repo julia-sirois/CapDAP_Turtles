@@ -282,15 +282,19 @@ areas <- cbind(L1R2_area, L1R4_area, L3R1_area, L3R3_area, L3R9_area, L9R0_area)
 colnames(areas) <- c("L1R2", "L1R4", "L3R1", "L3R3", "L3R9", "L9R0") 
 areas
 ```
+Ok - this is where the capDAP_turtlesDRAFT.Rmd stopped. See that file for comments on the code above this point.
+
 
 Pivot the data to be long
 ```{r}
 library(tidyr) #activates package
 areas_long <- pivot_longer(areas, cols = L1R2:L9R0, names_to = "Turtle_ID", values_to = "MCP_area")
 ```
+You lost track (label) in the long csv of which mcp each row corresponds to (75,80, 85, 90 etc.).  You should probabaly keep track of that.
+
 
 Export draft as a .csv
 ```{r}
 write.csv(areas, "C:\\jesiro19\\Home\\Biostats\\CapDAP_turtles\\Code\\MCP_areas.csv", row.names = TRUE)
 ```
-
+This write.csv, without using the here package, is problematic because it is pointing to your hard drive, not to a relative path within your project folder (which here would allow you to do.)
