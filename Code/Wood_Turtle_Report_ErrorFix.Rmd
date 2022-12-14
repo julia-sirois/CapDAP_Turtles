@@ -27,7 +27,7 @@ In the book Biology and Conservation of the Wood Turtle, Chapter 6: Spatial Ecol
 Good, but maybe intergrate these findings right into your hyptotheses. Also, we need a formal citation of the book (maybe at the end of the document.)
 
 ## Getting Started
-```{r}
+```{r, message = FALSE}
 rm(list = ls())
 library(tidyverse)
 library(ggfortify)
@@ -53,7 +53,7 @@ turtles.sp <- turtles [c("Turtle_ID", "Latitude", "Longitude")]
 ```
 
 R is reading the Lats and Longs as numeric data and needs to be told that those columns represent spacial data.
-```{r}
+```{r, message = FALSE}
 library(sp)
 coordinates(turtles.sp)<- c("Longitude", "Latitude")
 proj4string(turtles.sp)<-CRS("+proj=longlat +datum=WGS84") #sets projection
@@ -62,8 +62,8 @@ proj4string(turtles.sp)<-CRS("+proj=longlat +datum=WGS84") #sets projection
 Now convert the spatial coordinates into UTM so the measurements are in meters and not degrees.
 ```{r}
 utm_sp <-spTransform(turtles.sp, CRS("+proj=utm +zone=19 ellps=WGS84")) #reprojects to UTM
-utm_sp
 ```
+
 ```{r}
 turtles_mcp <- mcp(utm_sp, percent = 100)
 turtles_mcp 
@@ -72,7 +72,7 @@ turtles_mcp
 Ok - I wonder if there is a package conflict? One thing you could do is just refer to getting the mcps from your other code (reference the other file and write them from that file) and then just import them here, already "cooked".
 
 Plot the MCPs
-```{r, fig.cap='Figure 1. A delightful dog named Gus'}
+```{r, fig.cap='Figure 1. MCP Polygons'}
 plot(utm_sp, col = as.factor(utm_sp@data$Turtle_ID), pch = 16)
 plot(turtles_mcp, col = alpha(1:30, 0.5), add = TRUE)
 ```

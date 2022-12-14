@@ -1,0 +1,223 @@
+---
+title: "Sirois_CapDAP_Final_Report.Rmd"
+author: "Julia Sirois"
+date: "12/13/2022"
+output: html_document
+---
+
+## Introduction Questions:
+
+*1. What is the data set you are working with? Where did it come
+from? Describe the data.*
+
+For this project I worked with a telemtry dataset consisting of three male and three female Wood turtles (*Glyptemys insculpta*). The data was collected by the RIDEM during the 2022 active season. With the addition of GIS components, habitat information and information about each turtle relocation in relationship to their home stream, have been added to the dataframe. This is a spatial dataset as it documents relocations of the six telemetried turtles.
+
+*2. What are the specific questions you are asking of these data?*
+
+With these data I would like to investigate the following two questions:
+Is MCP home range area influenced by sex?
+Is the distance away from the home stream that each turtle occupies influenced by sex?
+
+*3. What is the biological motivation behind each of your questions?*
+
+Wood turtles are considered a species of greatest conservation concern in all 17 states where they naturally occur. Gaining a better understanding of how this species uses their space and how factors like sex influence their behavior could result in researchers having the ability to locate more populations based of habitat parameters and protect those areas. There is also little known about hatchling behavior, therefore, models that determine habitat allocation of adults may help to direct the monitors of juveniles. 
+
+*4. What is the scientific justification (i.e., cite some papers) for your hypotheses and expected outcomes?*
+In chapter 6 of the book *Biology and Conservation of the Wood Turtle*, spatial ecology and behavior is discussed. Wood turtles are known to spend a lot of time on land during the active period (March/April - Early October). Their use of land is for thermoregulation, foraging, and this species has been documented traveling upward of a kilometer for suitable nesting habitat. Male wood turtles have been documented to have a larger statistical range (95% MCP) and have a larger stream range, meaning they utilize larger portions of their home stream than females do (Jones and Willey 2020). Female wood turtles tend to move further away from their overwintering stream and occupy these greater distances more than males of the species (Akre and Ernst 2006). 
+
+## Getting Started
+```{r, message = FALSE}
+rm(list = ls())
+library(tidyverse)
+library(ggfortify)
+library(here)
+library(rgdal)
+library(adehabitatHR) #package for home range analysis
+library(sp) #package for spatial data
+```
+
+## Pull in data
+```{r}
+turtles <- read.csv(here("Data", "updated_turtle_locations.csv"))
+```
+
+## Analyses
+
+### Question 1: Is MCP home range area influenced by sex?
+### Hypothesis: I hypothesize that male wood turtles occupy larger home ranges than female wood turtles.
+
+Create a subset with the columns necessary for MCP calculation
+```{r}
+turtles.sp <- turtles [c("Turtle_ID", "Latitude", "Longitude")]
+```
+
+In order to calculate the MCP for each turtle, R needs to know that this dataset contains spatial data. Right now R is reading the Lats and Longs as numeric data.
+```{r, message = FALSE}
+coordinates(turtles.sp)<- c("Longitude", "Latitude") #reads columns as coordinates
+proj4string(turtles.sp)<-CRS("+proj=longlat +datum=WGS84") #sets projection
+```
+
+Now the spatial coordinates need to be converted into UTM so the measurements are in meters and not degrees.
+```{r, message = FALSE, warning = FALSE}
+utm_sp <-spTransform(turtles.sp, CRS("+proj=utm +zone=19 ellps=WGS84")) #reprojects to UTM
+```
+
+Create the MCPs. The areas are measured in square meters
+```{r, message = FALSE, warning = FALSE}
+turtles_mcp <- mcp(utm_sp, percent = 100) #creates spatial polygons
+turtles_mcp
+```
+L1R2, L3R1, and L9R0 are the males in this population. Their areas appear to be larger than the female turtles (L1R4, L3R3, and L3R9). This is the MCPs at 100% size. 
+
+Plot the MCPs
+```{r, fig.cap='Figure 1. MCP visual for each turtle'}
+plot(utm_sp, col = as.factor(utm_sp@data$Turtle_ID), pch = 16)
+plot(turtles_mcp, col = alpha(1:30, 0.5), add = TRUE)
+```
+
+Now calculate the MCPs
+```{r, message = FALSE, warning = FALSE, fig.cap= Figure 2. Home range sequential increases per individual}
+areas <- mcp.area(utm_sp, percent = seq(50, 100, by = 5)) #shows the MCP area increase
+areas
+```
+
+The area increase column is not contained in the dataset. It can be incorporated into the dataset by exporting it the 'areas' subset and then pulling it back in.
+
+```{r}
+write.csv(areas, here("Data", "turtle_areas.csv"))
+```
+
+Import the .csv
+```{r}
+turtle_areas <- read.csv(here("Data", "turtle_areas.csv"))
+```
+
+Pivot the dataset
+```{r}
+areas_long <- pivot_longer(turtle_areas, cols = L1R2:L9R0, names_to = "Turtle_ID", values_to = "Area") #pivots the data
+```
+
+Rename the 'X' column
+```{r}
+colnames(areas_long) <- c("Area_percentage", "Turtle_ID", "Area")
+```
+
+Add a column with the appropriate sex for each individual
+```{r}
+Turtle_sex <- data.frame(Turtle_sex = c('male', 'female', 'male', 'female', 'female', 'male')) #creates df with the column I'd like to add
+areas_new <- cbind(areas_long, Turtle_sex) #merges the two dataframes
+```
+
+Isolate the 95% area value
+```{r}
+test_area <- filter(areas_new, Area_percentage == "95")
+```
+
+### Plot the relationship
+```{r}
+ggplot(test_area, aes(x = Area)) +
+  geom_histogram(binwidth = 1) +
+  facet_wrap(~Turtle_sex, ncol = 1) #generates two histograms
+  
+```
+
+### Guess the relationship
+When looking at the histogram, the home range areas at 95% seem similar between each sex. Turtle_sex is a categorical variable and Area is a continuous variable. For this relationship a t-test is the statistical test to run.
+
+### Create model and check assumptions
+```{r}
+ttest_MCP <- t.test(Area ~ Turtle_sex, data = test_area)
+```
+A t-test assumes a normal distribution so the model assumptions do not need to be checked.
+
+### Interpret results
+```{r}
+ttest_MCP
+```
+
+The mean MCP area at 95% for males is 18.836 square meters and the mean for females is 8.657 square meters for females. The outcome of the t-test was a p-value of 0.4828 which not significant. For this sample, male wood turtles do not have a significantly larger home range than female wood turtles. Due to an insignificant result, a final plot is not necessary.
+
+### Question 2: Is the distance being occupied by wood turtles influenced by sex?
+### Hypothesis: I hypothesize that female wood turtles remain further away from their home stream during the active season than male wood turtles.
+
+Create subset with turtle sex and the distance to stream columns.
+```{r}
+river <- dplyr::select(turtles, Turtle_sex, NEAR_DIST, Turtle_ID)
+```
+
+### Plot the relationship
+```{r, fig.cap= Figure 4. Histogram of distance to stream relocations}
+ggplot(river, aes(NEAR_DIST))+
+  geom_histogram() +
+  facet_wrap(~Turtle_sex, ncol = 1)
+```
+
+### Guess the relationship
+Based on the histogram, the female turtles have relocations further away from the stream than males do and these larger distances occur at a high frequency for females. Turtle sex is a categorical variable and distance to stream is a continuous variable so a t-test is suitable for this relationship.
+
+### Create model and check assumptions
+```{r}
+turtle_ttest <- t.test(NEAR_DIST ~ Turtle_sex, data = river)
+```
+A t-test assumes a normal distribution so the model assumptions do not need to be checked.
+
+### Interpret results
+```{r}
+turtle_ttest
+```
+The mean distance that female turtles occupied away from the stream was 138.448 meters and the mean distance for male turtles was 62.992 meters. The p-value from this t-test was equal to < 2.2e-16 which is significant. Female turtles occupy significantly further distances from the stream than male turtles do for this population.
+
+### Replot the relationship
+```{r, fig.cap= Figure 5. All distance to stream relocations with mean for each sex}
+ggplot(river, aes(Turtle_sex, NEAR_DIST)) + 
+  geom_point()+
+  stat_summary(
+    geom = "point",
+    fun.y = "mean",
+    col = "black",
+    size = 3,
+    shape = 24,
+    fill = "red"
+  )
+```
+Make a publication plot by finding the mean distance for each turtle and then plotting the results that way. This will result in less clutter
+
+Find the means
+```{r}
+means <- summarise(
+  group_by(river, Turtle_ID, Turtle_sex),
+  meanDIST = mean(NEAR_DIST))
+```
+
+### Publication Plot
+```{r, fig.cap= Figure 6. Mean Distance to stream per individual (black) with group mean (red)}
+ggplot(means, aes(Turtle_sex, meanDIST)) + 
+  geom_point(size = 4)+
+  stat_summary(
+    geom = "point",
+    fun.y = "mean",
+    col = "black",
+    size = 5,
+    shape = 24,
+    fill = "red"
+  ) +
+  theme_bw()
+```
+
+## Biological Summary
+
+Male turtles did not have significantly greater home range areas than female turtles in this sample (n=6)(p=0.4828). This was different than my hypothesis and I can not reject the null.
+
+Female turtles occupied distances from the stream that were significantly greater than male turtles (n=6)(p=< 2.2e-16). I can reject the null for this test as there was a significant relationship that supports my hypothesis.
+
+## Challenges
+Having a small number of individuals, and having them native to the same management are was a challenge to work with. Small sample sizes could have skewed the results of both of my statistical tests. 
+A challenge I was able to work through was needing to learn how to manipulate numeric values into usable coordinates for spatial data analyses. One challenge in this was learning how to project coordinates into UTM so that instead of having decimal degrees, I would be working with meters. This was important for calculating the areas of the MCPs and the distance the turtles were from the stream. 
+I really wanted to be able to complete a third analysis but after a full four hours of trying to figure out how to run a two-way ANOVA and manipulate the habitat data in a way that I could run a statistical test, I had to call it quits. 
+
+### Citations:
+Akre, T.S.B., and C.H. Ernst. 2006. Population Dynamics, Habitat Use, and Home Range of the Wood Turtle, *Glyptemys (=Clemmys) insculpta*, in Virginia. Unpublished report prepared for the Virginia Department of Game and Inland Fisheries; Richmond
+
+Jones, M.T., and L.L. Willey. 2020. Cross-watershed dispersal and annual movement in adult Wood Turtles (*Glyptemys insculpta*). Herpetological Review 51: 208-211
+
+Jones, M.T., and L.L. Willey. 2021. Biology and Conservation of the Wood Turtle. Northeast Association of Fish and Wildlife Agencies., 2021.
