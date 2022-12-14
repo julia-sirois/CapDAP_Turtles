@@ -1,0 +1,54 @@
+---
+title: "Habitat_analysis"
+author: "Julia Sirois"
+date: "12/13/2022"
+output: html_document
+---
+
+Getting set up
+```{r}
+rm(list = ls())
+library(tidyverse)
+library(ggfortify)
+library(here)
+```
+
+Pulling in the data
+```{r}
+habitat <- read.csv(here("Data", "turtle_habitat_r1.csv"), stringsAsFactors = FALSE)
+```
+
+
+```{r}
+habitat$Habitat_Cl <- as.factor(habitat$Habitat_Cl)
+levels(habitat$Habitat_Cl)
+```
+
+Plot the relationship
+```{r}
+ggplot(habitat, aes(x= Habitat_Cl, colour = Turtle_sex)) +
+  geom_histogram(stat = 'count') +
+  theme_bw() +
+  coord_flip()
+```
+
+
+For the habitat analysis, lets combine all upland habitats together and all wetland habitats together. These will be the two macro habitats that are being focused on
+```{r}
+Upland <- filter(habitat, Habitat_Cl == "Upland Forest Mixed")
+Wetland <- filter(habitat, Habitat_Cl == "Wetland Forest Mixed")
+as.factor(Upland$Turtle_sex)
+```
+
+ttest
+```{r}
+habitat_ttest <- t.test(Habitat_Cl ~ Turtle_sex, data = Upland)
+```
+
+
+
+
+```{r}
+
+```
+

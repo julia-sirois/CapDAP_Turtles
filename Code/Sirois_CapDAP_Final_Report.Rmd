@@ -2,7 +2,9 @@
 title: "Sirois_CapDAP_Final_Report.Rmd"
 author: "Julia Sirois"
 date: "12/13/2022"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ## Introduction Questions:
@@ -70,13 +72,13 @@ turtles_mcp
 L1R2, L3R1, and L9R0 are the males in this population. Their areas appear to be larger than the female turtles (L1R4, L3R3, and L3R9). This is the MCPs at 100% size. 
 
 Plot the MCPs
-```{r, fig.cap='Figure 1. MCP visual for each turtle'}
+```{r, fig.cap='MCP visual for each turtle'}
 plot(utm_sp, col = as.factor(utm_sp@data$Turtle_ID), pch = 16)
 plot(turtles_mcp, col = alpha(1:30, 0.5), add = TRUE)
 ```
 
 Now calculate the MCPs
-```{r, message = FALSE, warning = FALSE, fig.cap= Figure 2. Home range sequential increases per individual}
+```{r, message = FALSE, warning = FALSE, fig.cap= "Home range sequential increases per individual"}
 areas <- mcp.area(utm_sp, percent = seq(50, 100, by = 5)) #shows the MCP area increase
 areas
 ```
@@ -146,7 +148,7 @@ river <- dplyr::select(turtles, Turtle_sex, NEAR_DIST, Turtle_ID)
 ```
 
 ### Plot the relationship
-```{r, fig.cap= Figure 4. Histogram of distance to stream relocations}
+```{r, fig.cap= "Histogram of distance to stream relocations"}
 ggplot(river, aes(NEAR_DIST))+
   geom_histogram() +
   facet_wrap(~Turtle_sex, ncol = 1)
@@ -168,7 +170,7 @@ turtle_ttest
 The mean distance that female turtles occupied away from the stream was 138.448 meters and the mean distance for male turtles was 62.992 meters. The p-value from this t-test was equal to < 2.2e-16 which is significant. Female turtles occupy significantly further distances from the stream than male turtles do for this population.
 
 ### Replot the relationship
-```{r, fig.cap= Figure 5. All distance to stream relocations with mean for each sex}
+```{r, fig.cap= "All distance to stream relocations with mean for each sex"}
 ggplot(river, aes(Turtle_sex, NEAR_DIST)) + 
   geom_point()+
   stat_summary(
@@ -190,7 +192,7 @@ means <- summarise(
 ```
 
 ### Publication Plot
-```{r, fig.cap= Figure 6. Mean Distance to stream per individual (black) with group mean (red)}
+```{r, fig.cap= "Mean Distance to stream per individual (black) with group mean (red)"}
 ggplot(means, aes(Turtle_sex, meanDIST)) + 
   geom_point(size = 4)+
   stat_summary(
